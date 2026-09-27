@@ -23,6 +23,7 @@ import {
   str,
 } from '@internal/psl-parser';
 import { parse, type SourceFile } from '@internal/psl-parser/syntax';
+import { timeouts } from '@repo/test-utils';
 import { describe, expect, it } from 'vitest';
 import {
   type CompletionItem,
@@ -1132,46 +1133,50 @@ describe('providePslCompletionItems', () => {
     expect(completionItemByLabel(items, 'Int').detail).toBe('Configured scalar type');
   });
 
-  it('lists deprecated Mongo scalar names last, tagged deprecated, naming the replacement', async () => {
-    const { mongoScalarAuthoringTypes } = await importFromPackageRoot<{
-      readonly mongoScalarAuthoringTypes: AuthoringTypeNamespace;
-    }>('../../../3-mongo-target/2-mongo-adapter/src/exports/control.ts');
-    const { items } = completeWithSource({
-      markedSource: 'model Post { value | }',
-      pslBlockDescriptors: {},
-      scalarTypes: Object.keys(mongoScalarAuthoringTypes),
-      authoringContributions: assembleAuthoringContributions([
-        { id: 'mongo-scalars', authoring: { type: mongoScalarAuthoringTypes } },
-      ]),
-      controlMutationDefaults,
-    });
-    const scalars = [...items]
-      .filter((item) => item.kind === CompletionItemKind.Keyword)
-      .sort((a, b) => (a.sortText ?? '').localeCompare(b.sortText ?? ''));
-    const current = ['Int32', 'Double', 'Bool', 'Date'];
-    const deprecated = [
-      ['Int', 'Int32'],
-      ['Float', 'Double'],
-      ['Boolean', 'Bool'],
-      ['DateTime', 'Date'],
-    ] as const;
-
-    expect(
-      scalars
-        .slice(-4)
-        .map((item) => item.label)
-        .sort(),
-    ).toEqual(deprecated.map(([name]) => name).sort());
-    for (const name of current) {
-      expect(completionItemByLabel(items, name)).not.toHaveProperty('tags');
-    }
-    for (const [name, replacement] of deprecated) {
-      expect(completionItemByLabel(items, name)).toMatchObject({
-        tags: [CompletionItemTag.Deprecated],
-        detail: expect.stringContaining(`Deprecated: use ${replacement}`),
+  it(
+    'lists deprecated Mongo scalar names last, tagged deprecated, naming the replacement',
+    async () => {
+      const { mongoScalarAuthoringTypes } = await importFromPackageRoot<{
+        readonly mongoScalarAuthoringTypes: AuthoringTypeNamespace;
+      }>('../../../3-mongo-target/2-mongo-adapter/src/exports/control.ts');
+      const { items } = completeWithSource({
+        markedSource: 'model Post { value | }',
+        pslBlockDescriptors: {},
+        scalarTypes: Object.keys(mongoScalarAuthoringTypes),
+        authoringContributions: assembleAuthoringContributions([
+          { id: 'mongo-scalars', authoring: { type: mongoScalarAuthoringTypes } },
+        ]),
+        controlMutationDefaults,
       });
-    }
-  });
+      const scalars = [...items]
+        .filter((item) => item.kind === CompletionItemKind.Keyword)
+        .sort((a, b) => (a.sortText ?? '').localeCompare(b.sortText ?? ''));
+      const current = ['Int32', 'Double', 'Bool', 'Date'];
+      const deprecated = [
+        ['Int', 'Int32'],
+        ['Float', 'Double'],
+        ['Boolean', 'Bool'],
+        ['DateTime', 'Date'],
+      ] as const;
+
+      expect(
+        scalars
+          .slice(-4)
+          .map((item) => item.label)
+          .sort(),
+      ).toEqual(deprecated.map(([name]) => name).sort());
+      for (const name of current) {
+        expect(completionItemByLabel(items, name)).not.toHaveProperty('tags');
+      }
+      for (const [name, replacement] of deprecated) {
+        expect(completionItemByLabel(items, name)).toMatchObject({
+          tags: [CompletionItemTag.Deprecated],
+          detail: expect.stringContaining(`Deprecated: use ${replacement}`),
+        });
+      }
+    },
+    timeouts.coldTransformImport,
+  );
 
   it('uses actual SQL enum metadata and rejects an empty enum without invented values', async () => {
     const stack = await actualSqlStack();
