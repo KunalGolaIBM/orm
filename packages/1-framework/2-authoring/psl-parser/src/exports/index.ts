@@ -130,6 +130,7 @@ export type {
   ResolvedEntityReference,
 } from '../entity-reference';
 export { findBlockDescriptor, validateExtensionBlockFromSymbol } from '../extension-block';
+export { NAME_THE_PSL_SOURCE_LOSES } from '../name-the-psl-source-loses';
 export {
   keywordPslSpan,
   nodePslSpan,
@@ -156,3 +157,4 @@ export type {
   TopLevelScope,
 } from '../symbol-table';
 export { buildSymbolTable } from '../symbol-table';
+export { isPslIdentifier } from '../tokenizer';

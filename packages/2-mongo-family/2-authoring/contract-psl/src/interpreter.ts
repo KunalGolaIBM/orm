@@ -25,7 +25,6 @@ import type {
 import {
   instantiateAuthoringEntityType,
   isAuthoringEntityTypeDescriptor,
-  isAuthoringPslBlockDescriptor,
   isAuthoringTypeConstructorDescriptor,
 } from '@internal/framework-components/authoring';
 import type { CodecLookup } from '@internal/framework-components/codec';
@@ -59,13 +58,18 @@ import {
   createPslDiagnosticCollector,
   type DiagnosticSource,
   diagnosticSource,
-  keywordPslSpan,
   mapPslDiagnostics,
   nodePslSpan,
   type PslDiagnostic,
   type PslDiagnosticCollector,
 } from '@internal/psl-parser';
-import { fkRelationPairKey, type InvalidFkPairing } from '@internal/psl-parser/interpret';
+import {
+  claimedBlockKeywords,
+  enumMemberAttributeDiagnostics,
+  fkRelationPairKey,
+  type InvalidFkPairing,
+  unsupportedBlockDiagnostic,
+} from '@internal/psl-parser/interpret';
 import type { DocumentAst, PslSources } from '@internal/psl-parser/syntax';
 import { assertDefined } from '@internal/utils/assertions';
 import { blindCast } from '@internal/utils/casts';
@@ -1129,6 +1133,7 @@ function processEnumDeclarations(input: {
   for (const enumSymbol of input.enumSymbols) {
     const sourceFile = input.sources.sourceFileFor(enumSymbol.node.syntax);
     const decl = enumSymbol.block;
+    input.diagnostics.push(...enumMemberAttributeDiagnostics(enumSymbol, input.sources));
     const handle = instantiateAuthoringEntityType<EnumTypeHandle | undefined>(
       'enum',
       enumDescriptor,
@@ -1216,23 +1221,15 @@ export function interpretPslDocumentToMongoContract(
     });
   }
 
-  const legitimateBlockKeywords = new Set([
+  const blockKeywords = new Set([
     'enum',
-    ...Object.entries(input.authoringContributions?.pslBlockDescriptors ?? {})
-      .filter(([, descriptor]) => isAuthoringPslBlockDescriptor(descriptor))
-      .map(([keyword]) => keyword),
+    ...claimedBlockKeywords(input.authoringContributions?.pslBlockDescriptors),
   ]);
   for (const block of Object.values(topLevel.blocks)) {
-    if (legitimateBlockKeywords.has(block.keyword)) continue;
-    diagnostics.push({
-      code: 'PSL_UNSUPPORTED_TOP_LEVEL_BLOCK',
-      message: `Unsupported top-level block "${block.keyword}"`,
-      ...diagnosticSource(sources, block.node.syntax).at(
-        keywordPslSpan(block.node.syntax, block.keyword, sources),
-      ),
-    });
+    if (!blockKeywords.has(block.keyword)) {
+      diagnostics.push(unsupportedBlockDiagnostic(block, sources));
+    }
   }
-
   const topLevelEnumSymbols = Object.values(topLevel.blocks).filter((b) => b.keyword === 'enum');
 
   const builtEnums = processEnumDeclarations({
