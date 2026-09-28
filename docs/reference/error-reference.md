@@ -917,7 +917,7 @@ A mutation that expected the database to return a row got none: `create()`/`upse
 
 ### ORM.OPERATION_UNSUPPORTED
 
-A valid ORM method was called in a configuration that does not support it: mutating an MTI variant collection with a method that requires `createAll()`, Mongo `upsert()` with dot-path field operations, or a Mongo mutation carrying windowing (`orderBy`/`offset`/`limit`) or includes. Payload: `method`, `model`, `reason`, `field`.
+A valid ORM method was called in a configuration that does not support it: mutating an MTI variant collection with a method that requires `createAll()`, passing `onConflict: 'skip'` to `createAll()` on an MTI variant collection, Mongo `upsert()` with dot-path field operations, or a Mongo mutation carrying windowing (`orderBy`/`offset`/`limit`) or includes. Payload: `method`, `model`, `reason`, `field`.
 
 ### ORM.RELATION_LINK_DUPLICATE
 
