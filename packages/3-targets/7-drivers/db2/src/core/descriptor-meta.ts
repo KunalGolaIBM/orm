@@ -1,0 +1,8 @@
+export const db2DriverDescriptorMeta = {
+  kind: 'driver',
+  familyId: 'sql',
+  targetId: 'db2',
+  id: 'db2',
+  version: '0.0.1',
+  capabilities: {},
+} as const;

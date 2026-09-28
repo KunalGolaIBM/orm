@@ -1,0 +1,14 @@
+export const DB2_SMALLINT_CODEC_ID = 'db2/smallint@1' as const;
+export const DB2_INTEGER_CODEC_ID = 'db2/integer@1' as const;
+export const DB2_BIGINT_CODEC_ID = 'db2/bigint@1' as const;
+export const DB2_DECIMAL_CODEC_ID = 'db2/decimal@1' as const;
+export const DB2_REAL_CODEC_ID = 'db2/real@1' as const;
+export const DB2_DOUBLE_CODEC_ID = 'db2/double@1' as const;
+export const DB2_VARCHAR_CODEC_ID = 'db2/varchar@1' as const;
+export const DB2_CHAR_CODEC_ID = 'db2/char@1' as const;
+export const DB2_CLOB_CODEC_ID = 'db2/clob@1' as const;
+export const DB2_BLOB_CODEC_ID = 'db2/blob@1' as const;
+export const DB2_DATE_CODEC_ID = 'db2/date@1' as const;
+export const DB2_TIME_CODEC_ID = 'db2/time@1' as const;
+export const DB2_TIMESTAMP_CODEC_ID = 'db2/timestamp@1' as const;
+export const DB2_BOOLEAN_CODEC_ID = 'db2/boolean@1' as const;
