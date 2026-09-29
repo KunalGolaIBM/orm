@@ -130,9 +130,11 @@ export type ShellName =
   | '@prisma/orm-family-mongo'
   | '@prisma/orm-target-postgres'
   | '@prisma/orm-target-sqlite'
+  | '@prisma/orm-target-db2'
   | '@prisma/orm-target-mongo'
   | '@prisma/orm-postgres'
   | '@prisma/orm-sqlite'
+  | '@prisma/orm-db2'
   | '@prisma/orm-mongo'
   | '@prisma/orm-extension-postgis'
   | '@prisma/orm-extension-pgvector'
@@ -592,6 +594,30 @@ export const publicShells: ReadonlyMap<ShellName, ShellDefinition> = new Map<
     },
   ],
   [
+    '@prisma/orm-target-db2',
+    {
+      dir: 'packages/9-public/@prisma/orm-target-db2',
+      kind: 'platform',
+      packages: [
+        {
+          dir: 'packages/3-targets/3-targets/db2',
+          name: '@internal/target-db2',
+          entry: 'target',
+        },
+        {
+          dir: 'packages/3-targets/6-adapters/db2',
+          name: '@internal/adapter-db2',
+          entry: 'adapter',
+        },
+        {
+          dir: 'packages/3-targets/7-drivers/db2',
+          name: '@internal/driver-db2',
+          entry: 'driver',
+        },
+      ],
+    },
+  ],
+  [
     '@prisma/orm-target-mongo',
     {
       dir: 'packages/9-public/@prisma/orm-target-mongo',
@@ -684,6 +710,24 @@ export const publicShells: ReadonlyMap<ShellName, ShellDefinition> = new Map<
         target: '@internal/target-sqlite',
         adapter: '@internal/adapter-sqlite',
         driver: '@internal/driver-sqlite',
+        queryBuilders: SQL_QUERY_REEXPORTS,
+      }),
+    },
+  ],
+  [
+    '@prisma/orm-db2',
+    {
+      dir: 'packages/9-public/@prisma/orm-db2',
+      kind: 'facade',
+      packages: [{ dir: 'packages/3-extensions/db2', name: '@internal/db2', entry: '' }],
+      reexports: facadeReexports({
+        family: '@internal/sql-contract',
+        familyPack: '@internal/family-sql',
+        runtime: '@internal/sql-runtime',
+        target: '@internal/target-db2',
+        targetSubpaths: ['codec-ids', 'codecs', 'control', 'data-types', 'runtime'],
+        adapter: '@internal/adapter-db2',
+        driver: '@internal/driver-db2',
         queryBuilders: SQL_QUERY_REEXPORTS,
       }),
     },

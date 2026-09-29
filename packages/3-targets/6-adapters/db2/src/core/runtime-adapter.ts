@@ -1,27 +1,19 @@
 import type { GeneratedValueSpec } from '@internal/contract/types';
 import { timestampNowRuntimeGenerator } from '@internal/family-sql/runtime';
-import type { RuntimeAdapterInstance } from '@internal/framework-components/execution';
 import type { RuntimeMutationDefaultGenerator } from '@internal/framework-components/runtime';
 import { builtinGeneratorIds } from '@internal/ids';
 import { generateId } from '@internal/ids/runtime';
 import type { SqlRuntimeAdapterDescriptor } from '@internal/sql-runtime';
+import { Db2AdapterImpl, db2RawCodecInfererImpl } from './adapter';
 import { db2RawCodecInferer, db2ScalarCodecs } from './codec-lookup';
 import { db2AdapterDescriptorMeta } from './descriptor-meta';
-import { renderDb2Identifier, renderLoweredDb2Sql } from './sql-renderer';
 
-export interface Db2RuntimeAdapterInstance extends RuntimeAdapterInstance<'sql', 'db2'> {
-  renderSql(sql: string, options?: { limit?: number; offset?: number }): string;
-  quoteIdentifier(name: string): string;
-}
-
-export function createDb2Adapter(): Db2RuntimeAdapterInstance {
-  return {
-    familyId: 'sql' as const,
-    targetId: 'db2' as const,
-    renderSql: renderLoweredDb2Sql,
-    quoteIdentifier: renderDb2Identifier,
-  };
-}
+/**
+ * `Db2AdapterImpl` already implements `RuntimeAdapterInstance<'sql', 'db2'>`
+ * (has `familyId` / `targetId`) and satisfies `Adapter<>`, so its instance type
+ * is the concrete `Db2RuntimeAdapterInstance`.
+ */
+export type Db2RuntimeAdapterInstance = InstanceType<typeof Db2AdapterImpl>;
 
 function createDb2MutationDefaultGenerators(): ReadonlyArray<RuntimeMutationDefaultGenerator> {
   return [
@@ -43,10 +35,11 @@ const db2RuntimeAdapterDescriptor: SqlRuntimeAdapterDescriptor<'db2', Db2Runtime
   ...db2AdapterDescriptorMeta,
   codecs: () => Array.from(db2ScalarCodecs),
   mutationDefaultGenerators: createDb2MutationDefaultGenerators,
-  rawCodecInferer: db2RawCodecInferer,
+  rawCodecInferer: db2RawCodecInfererImpl,
   create(_stack): Db2RuntimeAdapterInstance {
-    return createDb2Adapter();
+    return new Db2AdapterImpl();
   },
 };
 
+export { db2RawCodecInferer, db2RawCodecInfererImpl };
 export default db2RuntimeAdapterDescriptor;

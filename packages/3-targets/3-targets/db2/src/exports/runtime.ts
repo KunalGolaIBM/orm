@@ -1,10 +1,8 @@
-export const db2TargetDescriptorMetaRuntime = {
-  kind: 'target',
-  familyId: 'sql',
-  targetId: 'db2',
-  id: 'db2',
-  version: '0.0.1',
-  capabilities: {},
-} as const;
-
-export default db2TargetDescriptorMetaRuntime;
+export {
+  buildDb2Namespace,
+  Db2ContractSerializer,
+  Db2Schema,
+  Db2UnboundSchema,
+} from '../core/db2-contract-serializer';
+export type { Db2RuntimeTargetInstance } from '../core/runtime-target';
+export { default } from '../core/runtime-target';

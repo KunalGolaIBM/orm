@@ -23,7 +23,7 @@ export function renderLoweredDb2Sql(baseSql: string, options?: RenderSqlOptions)
 
 export function buildDb2ExecuteRequest(
   sql: string,
-  params?: readonly unknown[],
+  params: readonly unknown[] = [],
   options?: RenderSqlOptions,
 ): SqlExecuteRequest {
   return {

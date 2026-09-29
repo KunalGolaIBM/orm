@@ -38,39 +38,6 @@ export interface Db2ClientLike {
 
 export type Db2RuntimeDriver = RuntimeDriverInstance<'sql', 'db2'> & SqlDriver<Db2Binding>;
 
-interface DriverRuntimeError extends Error {
-  readonly code: 'DRIVER.NOT_CONNECTED' | 'DRIVER.ALREADY_CONNECTED';
-  readonly category: 'DRIVER';
-  readonly severity: 'error';
-  readonly details?: Record<string, unknown>;
-}
-
-function driverError(
-  code: DriverRuntimeError['code'],
-  message: string,
-  details?: Record<string, unknown>,
-): DriverRuntimeError {
-  const error = blindCast<DriverRuntimeError, 'Construct structured DriverRuntimeError'>(
-    new Error(message),
-  );
-  Object.defineProperty(error, 'name', {
-    value: 'RuntimeError',
-    configurable: true,
-  });
-  return Object.assign(error, {
-    code,
-    category: 'DRIVER' as const,
-    severity: 'error' as const,
-    message,
-    details,
-  });
-}
-
-const NOT_CONNECTED_MESSAGE =
-  'Db2 driver not connected. Call connect(binding) before acquireConnection or execute.';
-const ALREADY_CONNECTED_MESSAGE =
-  'Db2 driver already connected. Call close() before reconnecting with a new binding.';
-
 abstract class Db2Queryable implements SqlQueryable {
   protected readonly client: Db2ClientLike;
 
@@ -102,17 +69,14 @@ abstract class Db2Queryable implements SqlQueryable {
     try {
       const rows = await this.client.query(`EXPLAIN ALL FOR ${request.sql}`, request.params);
       return {
-        queryPlan: JSON.stringify(rows),
+        rows: blindCast<
+          ReadonlyArray<Record<string, unknown>>,
+          'explain result rows are plain records'
+        >(rows),
       };
     } catch (error) {
       throw normalizeDb2Error(error);
     }
-  }
-}
-
-class Db2Connection extends Db2Queryable implements SqlConnection {
-  async release(): Promise<void> {
-    // Release connection handle
   }
 }
 
@@ -130,20 +94,42 @@ class Db2Transaction extends Db2Queryable implements SqlTransaction {
   }
 }
 
+class Db2Connection extends Db2Queryable implements SqlConnection {
+  async beginTransaction(): Promise<SqlTransaction> {
+    if (this.client.beginTransaction) {
+      await this.client.beginTransaction();
+    }
+    return new Db2Transaction(this.client);
+  }
+
+  async release(): Promise<void> {
+    // Connection pool release — no-op for single-connection driver
+  }
+
+  async destroy(_reason?: unknown): Promise<void> {
+    try {
+      await this.client.close();
+    } catch {
+      // Destroy is advisory; swallow close errors
+    }
+  }
+}
+
 export class Db2Driver implements Db2RuntimeDriver {
   readonly familyId = 'sql' as const;
   readonly targetId = 'db2' as const;
 
-  private client: Db2ClientLike | undefined;
+  private _client: Db2ClientLike | undefined;
+
+  get state(): SqlDriverState {
+    return this._client !== undefined ? 'connected' : 'unbound';
+  }
 
   async connect(binding: Db2Binding): Promise<void> {
-    if (this.client) {
-      throw driverError('DRIVER.ALREADY_CONNECTED', ALREADY_CONNECTED_MESSAGE);
-    }
     if (binding.kind === 'client') {
-      this.client = binding.client;
+      this._client = binding.client;
     } else if (binding.kind === 'nativeConnection') {
-      this.client = new IbmDbClientWrapper(binding.connection);
+      this._client = new IbmDbClientWrapper(binding.connection);
     } else if (binding.kind === 'connectionString') {
       if (binding.nativeModule) {
         const conn = await new Promise<NativeIbmDbConnection>((resolve, reject) => {
@@ -155,7 +141,7 @@ export class Db2Driver implements Db2RuntimeDriver {
             }
           });
         });
-        this.client = new IbmDbClientWrapper(conn);
+        this._client = new IbmDbClientWrapper(conn);
       } else {
         throw new InternalError(
           'Native connectionString binding requires ibm_db binary runtime module.',
@@ -165,14 +151,10 @@ export class Db2Driver implements Db2RuntimeDriver {
   }
 
   async close(): Promise<void> {
-    if (this.client) {
-      await this.client.close();
-      this.client = undefined;
+    if (this._client) {
+      await this._client.close();
+      this._client = undefined;
     }
-  }
-
-  state(): SqlDriverState {
-    return this.client ? 'connected' : 'unconnected';
   }
 
   async acquireConnection(): Promise<SqlConnection> {
@@ -180,38 +162,30 @@ export class Db2Driver implements Db2RuntimeDriver {
     return new Db2Connection(client);
   }
 
-  async transaction(): Promise<SqlTransaction> {
-    const client = this.requireClient();
-    if (client.beginTransaction) {
-      await client.beginTransaction();
-    }
-    return new Db2Transaction(client);
-  }
-
   async *query<Row = Record<string, unknown>>(request: SqlExecuteRequest): AsyncIterable<Row> {
     const client = this.requireClient();
-    const queryable = new Db2Connection(client);
-    for await (const row of queryable.query<Row>(request)) {
+    const conn = new Db2Connection(client);
+    for await (const row of conn.query<Row>(request)) {
       yield row;
     }
   }
 
   async execute(request: SqlExecuteRequest): Promise<SqlStatementStats> {
     const client = this.requireClient();
-    const queryable = new Db2Connection(client);
-    return queryable.execute(request);
+    return new Db2Connection(client).execute(request);
   }
 
   async explain(request: SqlExecuteRequest): Promise<SqlExplainResult> {
     const client = this.requireClient();
-    const queryable = new Db2Connection(client);
-    return queryable.explain(request);
+    return new Db2Connection(client).explain(request);
   }
 
   private requireClient(): Db2ClientLike {
-    if (!this.client) {
-      throw driverError('DRIVER.NOT_CONNECTED', NOT_CONNECTED_MESSAGE);
+    if (!this._client) {
+      throw new InternalError(
+        'Db2 driver not connected. Call connect(binding) before acquireConnection or execute.',
+      );
     }
-    return this.client;
+    return this._client;
   }
 }

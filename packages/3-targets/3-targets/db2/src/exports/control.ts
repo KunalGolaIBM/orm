@@ -1,5 +1,5 @@
 import { UNBOUND_NAMESPACE_ID } from '@internal/framework-components/ir';
-import { db2TargetDescriptorMetaRuntime } from './runtime';
+import { db2TargetDescriptorMetaRuntime } from '../core/descriptor-meta-runtime';
 
 export const db2TargetDescriptorMeta = {
   ...db2TargetDescriptorMetaRuntime,

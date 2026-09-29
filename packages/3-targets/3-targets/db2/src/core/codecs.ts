@@ -1,8 +1,11 @@
+import type { JsonValue } from '@internal/contract/types';
 import {
+  type AnyCodecDescriptor,
   type CodecCallContext,
-  type CodecDescriptor,
+  type CodecDescriptorTemplate,
   CodecImpl,
   type CodecInstanceContext,
+  type DataTypeId,
 } from '@internal/framework-components/codec';
 import {
   DB2_BIGINT_CODEC_ID,
@@ -12,103 +15,137 @@ import {
 } from './codec-ids';
 import { db2Bigint, db2Boolean, db2Integer, db2Varchar } from './data-types';
 
-export class Db2VarcharCodec extends CodecImpl<string, [], string, string> {
-  encode(value: string, _ctx: CodecCallContext): string {
+export class Db2VarcharCodec extends CodecImpl<
+  typeof DB2_VARCHAR_CODEC_ID,
+  readonly [],
+  string,
+  string
+> {
+  async encode(value: string, _ctx: CodecCallContext): Promise<string> {
     return value;
   }
-  decode(value: unknown, _ctx: CodecCallContext): string {
-    return String(value);
+  async decode(wire: string, _ctx: CodecCallContext): Promise<string> {
+    return String(wire);
   }
-  encodeJson(value: string, _ctx: CodecCallContext): string {
+  encodeJson(value: string): JsonValue {
     return value;
   }
-  decodeJson(value: unknown, _ctx: CodecCallContext): string {
-    return String(value);
+  decodeJson(json: JsonValue): string {
+    return String(json);
   }
 }
 
-export class Db2IntegerCodec extends CodecImpl<string, [], number, number> {
-  encode(value: number, _ctx: CodecCallContext): number {
+export class Db2IntegerCodec extends CodecImpl<
+  typeof DB2_INTEGER_CODEC_ID,
+  readonly [],
+  number,
+  number
+> {
+  async encode(value: number, _ctx: CodecCallContext): Promise<number> {
     return value;
   }
-  decode(value: unknown, _ctx: CodecCallContext): number {
-    return typeof value === 'number' ? value : Number.parseInt(String(value), 10);
+  async decode(wire: number, _ctx: CodecCallContext): Promise<number> {
+    return typeof wire === 'number' ? wire : Number.parseInt(String(wire), 10);
   }
-  encodeJson(value: number, _ctx: CodecCallContext): number {
+  encodeJson(value: number): JsonValue {
     return value;
   }
-  decodeJson(value: unknown, _ctx: CodecCallContext): number {
-    return typeof value === 'number' ? value : Number.parseInt(String(value), 10);
+  decodeJson(json: JsonValue): number {
+    return typeof json === 'number' ? json : Number.parseInt(String(json), 10);
   }
 }
 
-export class Db2BigintCodec extends CodecImpl<string, [], bigint, string> {
-  encode(value: bigint, _ctx: CodecCallContext): string {
+export class Db2BigintCodec extends CodecImpl<
+  typeof DB2_BIGINT_CODEC_ID,
+  readonly [],
+  string,
+  bigint
+> {
+  async encode(value: bigint, _ctx: CodecCallContext): Promise<string> {
     return value.toString();
   }
-  decode(value: unknown, _ctx: CodecCallContext): bigint {
-    return BigInt(String(value));
+  async decode(wire: string, _ctx: CodecCallContext): Promise<bigint> {
+    return BigInt(String(wire));
   }
-  encodeJson(value: bigint, _ctx: CodecCallContext): string {
+  encodeJson(value: bigint): JsonValue {
     return value.toString();
   }
-  decodeJson(value: unknown, _ctx: CodecCallContext): bigint {
-    return BigInt(String(value));
+  decodeJson(json: JsonValue): bigint {
+    return BigInt(String(json));
   }
 }
 
-export class Db2BooleanCodec extends CodecImpl<string, [], boolean, boolean> {
-  encode(value: boolean, _ctx: CodecCallContext): boolean {
+export class Db2BooleanCodec extends CodecImpl<
+  typeof DB2_BOOLEAN_CODEC_ID,
+  readonly [],
+  boolean,
+  boolean
+> {
+  async encode(value: boolean, _ctx: CodecCallContext): Promise<boolean> {
     return value;
   }
-  decode(value: unknown, _ctx: CodecCallContext): boolean {
-    if (typeof value === 'boolean') return value;
-    if (typeof value === 'number') return value === 1;
-    return String(value) === 'true' || String(value) === '1';
+  async decode(wire: boolean, _ctx: CodecCallContext): Promise<boolean> {
+    if (typeof wire === 'boolean') return wire;
+    if (typeof wire === 'number') return wire === 1;
+    return String(wire) === 'true' || String(wire) === '1';
   }
-  encodeJson(value: boolean, _ctx: CodecCallContext): boolean {
+  encodeJson(value: boolean): JsonValue {
     return value;
   }
-  decodeJson(value: unknown, _ctx: CodecCallContext): boolean {
-    return Boolean(value);
+  decodeJson(json: JsonValue): boolean {
+    return Boolean(json);
   }
 }
 
-export const db2CodecDescriptors: ReadonlyArray<CodecDescriptor> = [
-  {
-    codecId: DB2_VARCHAR_CODEC_ID,
-    dataType: db2Varchar.id,
+function makeDescriptor<TCodec extends CodecImpl<string, readonly [], unknown, unknown>>(
+  codecId: string,
+  dataType: DataTypeId,
+  targetTypes: readonly string[],
+  makeCodec: (descriptor: CodecDescriptorTemplate) => TCodec,
+): AnyCodecDescriptor {
+  const descriptor: AnyCodecDescriptor = {
+    codecId,
+    dataType,
     traits: [],
-    targetTypes: ['VARCHAR'],
+    targetTypes,
     isParameterized: false,
-    factory: () => (_ctx: CodecInstanceContext) =>
-      new Db2VarcharCodec(DB2_VARCHAR_CODEC_ID, [], db2Varchar.id),
-  },
-  {
-    codecId: DB2_INTEGER_CODEC_ID,
-    dataType: db2Integer.id,
-    traits: [],
-    targetTypes: ['INTEGER', 'INT'],
-    isParameterized: false,
-    factory: () => (_ctx: CodecInstanceContext) =>
-      new Db2IntegerCodec(DB2_INTEGER_CODEC_ID, [], db2Integer.id),
-  },
-  {
-    codecId: DB2_BIGINT_CODEC_ID,
-    dataType: db2Bigint.id,
-    traits: [],
-    targetTypes: ['BIGINT'],
-    isParameterized: false,
-    factory: () => (_ctx: CodecInstanceContext) =>
-      new Db2BigintCodec(DB2_BIGINT_CODEC_ID, [], db2Bigint.id),
-  },
-  {
-    codecId: DB2_BOOLEAN_CODEC_ID,
-    dataType: db2Boolean.id,
-    traits: [],
-    targetTypes: ['BOOLEAN'],
-    isParameterized: false,
-    factory: () => (_ctx: CodecInstanceContext) =>
-      new Db2BooleanCodec(DB2_BOOLEAN_CODEC_ID, [], db2Boolean.id),
-  },
+    paramsSchema: undefined,
+    factory: () => (_ctx: CodecInstanceContext) => makeCodec(descriptor),
+  };
+  return descriptor;
+}
+
+const db2VarcharDescriptor = makeDescriptor(
+  DB2_VARCHAR_CODEC_ID,
+  db2Varchar.id,
+  ['VARCHAR', 'CHAR', 'CHARACTER VARYING'],
+  (d) => new Db2VarcharCodec(d),
+);
+
+const db2IntegerDescriptor = makeDescriptor(
+  DB2_INTEGER_CODEC_ID,
+  db2Integer.id,
+  ['INTEGER', 'INT', 'SMALLINT'],
+  (d) => new Db2IntegerCodec(d),
+);
+
+const db2BigintDescriptor = makeDescriptor(
+  DB2_BIGINT_CODEC_ID,
+  db2Bigint.id,
+  ['BIGINT'],
+  (d) => new Db2BigintCodec(d),
+);
+
+const db2BooleanDescriptor = makeDescriptor(
+  DB2_BOOLEAN_CODEC_ID,
+  db2Boolean.id,
+  ['BOOLEAN'],
+  (d) => new Db2BooleanCodec(d),
+);
+
+export const db2CodecDescriptors: ReadonlyArray<AnyCodecDescriptor> = [
+  db2VarcharDescriptor,
+  db2IntegerDescriptor,
+  db2BigintDescriptor,
+  db2BooleanDescriptor,
 ];

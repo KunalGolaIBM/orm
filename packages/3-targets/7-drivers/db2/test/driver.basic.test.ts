@@ -5,7 +5,7 @@ import db2RuntimeDriverDescriptor from '../src/exports/runtime';
 import type { NativeIbmDbConnection } from '../src/ibm-db-wrapper';
 
 describe('@internal/driver-db2', () => {
-  it('connects, queries, executes, and handles transactions cleanly', async () => {
+  it('connects, queries, executes, and handles transactions via connection', async () => {
     const memoryData: Array<{ ID: number; NAME: string }> = [
       { ID: 1, NAME: 'Alice' },
       { ID: 2, NAME: 'Bob' },
@@ -39,12 +39,12 @@ describe('@internal/driver-db2', () => {
     };
 
     const driver = db2RuntimeDriverDescriptor.create();
-    expect(driver.state()).toBe('unconnected');
+    expect(driver.state).toBe('unbound');
 
     await driver.connect({ kind: 'client', client: mockClient });
-    expect(driver.state()).toBe('connected');
+    expect(driver.state).toBe('connected');
 
-    // Query test
+    // Query test via driver directly
     const results: Array<{ ID: number; NAME: string }> = [];
     for await (const row of driver.query<{ ID: number; NAME: string }>({
       sql: 'SELECT ID, NAME FROM USERS WHERE ID = ?',
@@ -61,14 +61,16 @@ describe('@internal/driver-db2', () => {
     });
     expect(stats.affectedRows).toBe(1);
 
-    // Transaction test
-    const tx = await driver.transaction();
+    // Transaction test via connection
+    const conn = await driver.acquireConnection();
+    const tx = await conn.beginTransaction();
     expect(inTx).toBe(true);
     await tx.commit();
     expect(committed).toBe(true);
+    await conn.release();
 
     await driver.close();
-    expect(driver.state()).toBe('unconnected');
+    expect(driver.state).toBe('unbound');
   });
 
   it('operates against native ibm_db connection wrapper', async () => {
@@ -120,7 +122,7 @@ describe('@internal/driver-db2', () => {
       kind: 'nativeConnection',
       connection: blindCast<NativeIbmDbConnection, 'Mock native connection'>(mockNativeConn),
     });
-    expect(driver.state()).toBe('connected');
+    expect(driver.state).toBe('connected');
 
     const rows: Array<{ C1: string; C2: number }> = [];
     for await (const row of driver.query<{ C1: string; C2: number }>({
@@ -133,14 +135,16 @@ describe('@internal/driver-db2', () => {
     const stats = await driver.execute({ sql: 'DELETE FROM TAB' });
     expect(stats.affectedRows).toBe(5);
 
-    const tx = await driver.transaction();
+    const conn = await driver.acquireConnection();
+    const tx = await conn.beginTransaction();
     expect(inTx).toBe(true);
     await tx.commit();
     expect(inTx).toBe(false);
+    await conn.release();
 
     await driver.close();
     expect(closed).toBe(true);
-    expect(driver.state()).toBe('unconnected');
+    expect(driver.state).toBe('unbound');
   });
 
   it('normalizes Db2 SQLSTATE errors and connection errors', async () => {
