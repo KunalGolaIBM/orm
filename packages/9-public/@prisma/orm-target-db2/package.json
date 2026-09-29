@@ -48,9 +48,13 @@
     "./driver/runtime": "./dist/driver__runtime.mjs",
     "./target": "./dist/target.mjs",
     "./target/codec-ids": "./dist/target__codec-ids.mjs",
+    "./target/codec-types": "./dist/target__codec-types.mjs",
     "./target/codecs": "./dist/target__codecs.mjs",
     "./target/control": "./dist/target__control.mjs",
     "./target/data-types": "./dist/target__data-types.mjs",
+    "./target/default-normalizer": "./dist/target__default-normalizer.mjs",
+    "./target/native-type-normalizer": "./dist/target__native-type-normalizer.mjs",
+    "./target/pack": "./dist/target__pack.mjs",
     "./target/runtime": "./dist/target__runtime.mjs",
     "./package.json": "./package.json"
   },

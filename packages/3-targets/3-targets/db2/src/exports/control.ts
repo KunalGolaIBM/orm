@@ -1,10 +1,5 @@
-import { UNBOUND_NAMESPACE_ID } from '@internal/framework-components/ir';
-import { db2TargetDescriptorMetaRuntime } from '../core/descriptor-meta-runtime';
-
-export const db2TargetDescriptorMeta = {
-  ...db2TargetDescriptorMetaRuntime,
-  defaultNamespaceId: UNBOUND_NAMESPACE_ID,
-  supportsNamespaces: true,
-} as const;
-
-export default db2TargetDescriptorMeta;
+export { Db2SchemaVerifier } from '../core/db2-schema-verifier';
+export {
+  db2TargetDescriptorMeta as default,
+  db2TargetDescriptorMeta,
+} from '../core/descriptor-meta';

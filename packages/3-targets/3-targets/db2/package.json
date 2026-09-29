@@ -53,8 +53,12 @@
     "./data-types": "./dist/data-types.mjs",
     "./codec-ids": "./dist/codec-ids.mjs",
     "./codecs": "./dist/codecs.mjs",
+    "./codec-types": "./dist/codec-types.mjs",
     "./runtime": "./dist/runtime.mjs",
     "./control": "./dist/control.mjs",
+    "./pack": "./dist/pack.mjs",
+    "./default-normalizer": "./dist/default-normalizer.mjs",
+    "./native-type-normalizer": "./dist/native-type-normalizer.mjs",
     "./package.json": "./package.json"
   },
   "engines": {
