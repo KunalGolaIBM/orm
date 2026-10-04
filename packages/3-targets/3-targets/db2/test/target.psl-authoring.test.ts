@@ -53,9 +53,26 @@ describe('parseDb2Default', () => {
     expect(parseDb2Default('current timestamp')).toEqual({ kind: 'function', expression: 'now()' });
   });
 
-  it('parses CURRENT DATE and CURRENT TIME as now()', () => {
-    expect(parseDb2Default('CURRENT DATE')).toEqual({ kind: 'function', expression: 'now()' });
-    expect(parseDb2Default('CURRENT TIME')).toEqual({ kind: 'function', expression: 'now()' });
+  it('parses CURRENT DATE as current_date (not now())', () => {
+    expect(parseDb2Default('CURRENT DATE')).toEqual({
+      kind: 'function',
+      expression: 'current_date',
+    });
+    expect(parseDb2Default('current_date')).toEqual({
+      kind: 'function',
+      expression: 'current_date',
+    });
+  });
+
+  it('parses CURRENT TIME as current_time (not now())', () => {
+    expect(parseDb2Default('CURRENT TIME')).toEqual({
+      kind: 'function',
+      expression: 'current_time',
+    });
+    expect(parseDb2Default('current_time')).toEqual({
+      kind: 'function',
+      expression: 'current_time',
+    });
   });
 
   it('strips outer parens to fixpoint', () => {
@@ -72,29 +89,38 @@ describe('parseDb2Default', () => {
 });
 
 describe('db2AuthoringTypes', () => {
-  it('exports expected type constructors', () => {
-    expect(db2AuthoringTypes.Varchar.kind).toBe('typeConstructor');
-    expect(db2AuthoringTypes.Integer.kind).toBe('typeConstructor');
-    expect(db2AuthoringTypes.Bigint.kind).toBe('typeConstructor');
-    expect(db2AuthoringTypes.Boolean.kind).toBe('typeConstructor');
-    expect(db2AuthoringTypes.Timestamp.kind).toBe('typeConstructor');
+  it('exports exactly the 4 MVP type constructors', () => {
+    expect(Object.keys(db2AuthoringTypes)).toEqual(['Varchar', 'Integer', 'Bigint', 'Boolean']);
   });
 
-  it('Integer output maps to db2/integer@1', () => {
+  it('Varchar maps to db2/varchar@1', () => {
+    expect(db2AuthoringTypes.Varchar.kind).toBe('typeConstructor');
+    expect(db2AuthoringTypes.Varchar.output.codecId).toBe('db2/varchar@1');
+    expect(db2AuthoringTypes.Varchar.output.nativeType).toBe('varchar');
+  });
+
+  it('Integer maps to db2/integer@1', () => {
+    expect(db2AuthoringTypes.Integer.kind).toBe('typeConstructor');
     expect(db2AuthoringTypes.Integer.output.codecId).toBe('db2/integer@1');
     expect(db2AuthoringTypes.Integer.output.nativeType).toBe('integer');
   });
 
-  it('Bigint output maps to db2/bigint@1', () => {
+  it('Bigint maps to db2/bigint@1', () => {
+    expect(db2AuthoringTypes.Bigint.kind).toBe('typeConstructor');
     expect(db2AuthoringTypes.Bigint.output.codecId).toBe('db2/bigint@1');
     expect(db2AuthoringTypes.Bigint.output.nativeType).toBe('bigint');
+  });
+
+  it('Boolean maps to db2/boolean@1', () => {
+    expect(db2AuthoringTypes.Boolean.kind).toBe('typeConstructor');
+    expect(db2AuthoringTypes.Boolean.output.codecId).toBe('db2/boolean@1');
+    expect(db2AuthoringTypes.Boolean.output.nativeType).toBe('boolean');
   });
 });
 
 describe('db2AuthoringFieldPresets', () => {
-  it('exports temporal field presets', () => {
-    expect(db2AuthoringFieldPresets.temporal).toBeDefined();
-    expect(db2AuthoringFieldPresets.temporal.timestamp).toBeDefined();
+  it('is empty for MVP (temporal presets require Timestamp codec)', () => {
+    expect(Object.keys(db2AuthoringFieldPresets)).toHaveLength(0);
   });
 });
 

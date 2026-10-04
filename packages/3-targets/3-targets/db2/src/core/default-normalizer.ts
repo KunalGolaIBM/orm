@@ -68,14 +68,14 @@ export function parseDb2Default(
     return { kind: 'function', expression: 'now()' };
   }
 
-  // Db2 current-date.
+  // Db2 current-date — maps to a date expression, NOT a timestamp.
   if (lower === 'current date' || lower === 'current_date') {
-    return { kind: 'function', expression: 'now()' };
+    return { kind: 'function', expression: 'current_date' };
   }
 
-  // Db2 current-time.
+  // Db2 current-time — maps to a time expression, NOT a timestamp.
   if (lower === 'current time' || lower === 'current_time') {
-    return { kind: 'function', expression: 'now()' };
+    return { kind: 'function', expression: 'current_time' };
   }
 
   if (NULL_PATTERN.test(trimmed)) {

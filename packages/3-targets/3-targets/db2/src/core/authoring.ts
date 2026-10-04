@@ -2,22 +2,23 @@ import type {
   AuthoringFieldNamespace,
   AuthoringTypeNamespace,
 } from '@internal/framework-components/authoring';
-import {
-  temporalAuthoringPresets,
-  temporalCodecPreset,
-} from '@internal/framework-components/authoring';
 
 /**
  * Db2 target authoring type constructors.
  *
  * These are the PSL-visible type constructor names contributed by the
  * `db2` target. They appear in the `@db2.` namespace inside a contract's
- * PSL source (e.g. `@db2.Timestamp`).
+ * PSL source (e.g. `@db2.Varchar(255)`).
+ *
+ * **MVP scope**: Only the 4 Db2 native types that have fully implemented codecs
+ * are exposed here. Additional types (Decimal, Date, Time, Timestamp, Clob,
+ * Blob, Char, Smallint, Real, Double) will be added in a follow-up once their
+ * codecs, wire-type mappings, and integration tests are in place.
  */
 export const db2AuthoringTypes = {
   Varchar: {
     kind: 'typeConstructor',
-    documentation: 'A Db2 VARCHAR column of the specified length (default 255).',
+    documentation: 'A Db2 VARCHAR(n) column. Decoded as a JavaScript `string`.',
     args: [
       {
         name: 'length',
@@ -32,34 +33,9 @@ export const db2AuthoringTypes = {
       nativeType: 'varchar',
     },
   },
-  Char: {
-    kind: 'typeConstructor',
-    documentation: 'A Db2 CHAR (fixed-length character) column of the specified length.',
-    args: [
-      {
-        name: 'length',
-        optional: true,
-        kind: 'number',
-        integer: true,
-        minimum: 1,
-      },
-    ],
-    output: {
-      codecId: 'db2/varchar@1',
-      nativeType: 'char',
-    },
-  },
-  Smallint: {
-    kind: 'typeConstructor',
-    documentation: 'A Db2 SMALLINT (16-bit signed integer) column.',
-    output: {
-      codecId: 'db2/integer@1',
-      nativeType: 'smallint',
-    },
-  },
   Integer: {
     kind: 'typeConstructor',
-    documentation: 'A Db2 INTEGER (32-bit signed integer) column.',
+    documentation: 'A Db2 INTEGER column (32-bit signed). Decoded as a JavaScript `number`.',
     output: {
       codecId: 'db2/integer@1',
       nativeType: 'integer',
@@ -67,98 +43,21 @@ export const db2AuthoringTypes = {
   },
   Bigint: {
     kind: 'typeConstructor',
-    documentation: 'A Db2 BIGINT (64-bit signed integer) column. Decoded as JavaScript `bigint`.',
+    documentation:
+      'A Db2 BIGINT column (64-bit signed). Decoded as a JavaScript `bigint`. ' +
+      'Large values that exceed `Number.MAX_SAFE_INTEGER` are returned by ibm_db as strings ' +
+      'and converted to `bigint` by the codec.',
     output: {
       codecId: 'db2/bigint@1',
       nativeType: 'bigint',
     },
   },
-  Decimal: {
-    kind: 'typeConstructor',
-    documentation: 'A Db2 DECIMAL(precision, scale) fixed-point column.',
-    args: [
-      {
-        name: 'precision',
-        optional: true,
-        kind: 'number',
-        integer: true,
-        minimum: 1,
-      },
-      {
-        name: 'scale',
-        optional: true,
-        kind: 'number',
-        integer: true,
-        minimum: 0,
-      },
-    ],
-    output: {
-      codecId: 'db2/varchar@1',
-      nativeType: 'decimal',
-    },
-  },
-  Real: {
-    kind: 'typeConstructor',
-    documentation: 'A Db2 REAL (32-bit floating-point) column.',
-    output: {
-      codecId: 'db2/varchar@1',
-      nativeType: 'real',
-    },
-  },
-  Double: {
-    kind: 'typeConstructor',
-    documentation: 'A Db2 DOUBLE (64-bit floating-point) column.',
-    output: {
-      codecId: 'db2/varchar@1',
-      nativeType: 'double',
-    },
-  },
   Boolean: {
     kind: 'typeConstructor',
-    documentation: 'A Db2 BOOLEAN column (true/false).',
+    documentation: 'A Db2 BOOLEAN column. Decoded as a JavaScript `boolean`.',
     output: {
       codecId: 'db2/boolean@1',
       nativeType: 'boolean',
-    },
-  },
-  Date: {
-    kind: 'typeConstructor',
-    documentation: 'A Db2 DATE column (year, month, day).',
-    output: {
-      codecId: 'db2/varchar@1',
-      nativeType: 'date',
-    },
-  },
-  Time: {
-    kind: 'typeConstructor',
-    documentation: 'A Db2 TIME column (hour, minute, second).',
-    output: {
-      codecId: 'db2/varchar@1',
-      nativeType: 'time',
-    },
-  },
-  Timestamp: {
-    kind: 'typeConstructor',
-    documentation: 'A Db2 TIMESTAMP column (date + time with microsecond precision).',
-    output: {
-      codecId: 'db2/varchar@1',
-      nativeType: 'timestamp',
-    },
-  },
-  Clob: {
-    kind: 'typeConstructor',
-    documentation: 'A Db2 CLOB (character large object) column for large text data.',
-    output: {
-      codecId: 'db2/varchar@1',
-      nativeType: 'clob',
-    },
-  },
-  Blob: {
-    kind: 'typeConstructor',
-    documentation: 'A Db2 BLOB (binary large object) column for large binary data.',
-    output: {
-      codecId: 'db2/varchar@1',
-      nativeType: 'blob',
     },
   },
 } as const satisfies AuthoringTypeNamespace;
@@ -166,17 +65,8 @@ export const db2AuthoringTypes = {
 /**
  * Db2 target authoring field presets.
  *
- * Pre-packaged field configurations for common Db2 column patterns.
+ * Empty for the MVP — temporal presets require a Timestamp codec with a real
+ * wire-type mapping. They will be added alongside `@db2.Timestamp` in a
+ * follow-up once the codec and integration tests are in place.
  */
-export const db2AuthoringFieldPresets = {
-  temporal: {
-    .../* @__PURE__ */ temporalAuthoringPresets({
-      codecId: 'db2/varchar@1',
-      nativeType: 'timestamp',
-    }),
-    timestamp: /* @__PURE__ */ temporalCodecPreset({
-      codecId: 'db2/varchar@1',
-      nativeType: 'timestamp',
-    }),
-  },
-} as const satisfies AuthoringFieldNamespace;
+export const db2AuthoringFieldPresets = {} as const satisfies AuthoringFieldNamespace;

@@ -3,13 +3,13 @@ import type { ControlDriverDescriptor } from '@internal/framework-components/con
 import type { SqlControlDriverInstance } from '@internal/sql-contract/types';
 import { blindCast } from '@internal/utils/casts';
 import { InternalError } from '@internal/utils/internal-error';
-import type { NativeIbmDbConnection } from '../ibm-db-wrapper';
+import type { IbmDbDatabase, IbmDbModule } from '../ibm-db-wrapper';
 import { normalizeDb2Error } from '../normalize-error';
 import { db2DriverDescriptorMeta } from './descriptor-meta';
 
 export interface Db2ControlDriverClient {
   query(sql: string, params?: readonly unknown[]): Promise<ReadonlyArray<Record<string, unknown>>>;
-  close(): Promise<void>;
+  close(): Promise<boolean | undefined>;
 }
 
 export class Db2ControlDriver implements SqlControlDriverInstance<'db2'> {
@@ -50,40 +50,26 @@ const db2ControlDriverDescriptor: ControlDriverDescriptor<'sql', 'db2', Db2Contr
     ...db2DriverDescriptorMeta,
     async create(connectionString: string): Promise<Db2ControlDriver> {
       try {
-        const { IbmDbClientWrapper } = await import('../ibm-db-wrapper');
-        // Dynamic import via a variable suppresses TS module-resolution errors
-        // for optional native modules that have no bundled type declarations.
+        // Dynamic import of the native ibm_db module.
+        // We use a variable for the module name to avoid static analysis bundling it.
         const ibmDbModuleName = 'ibm_db';
-        const ibmDbModule = blindCast<
-          { open(connStr: string, cb: (err: unknown, conn: unknown) => void): void },
-          'ibm_db is a native module without bundled types'
-        >(
+        const ibmDbModule = blindCast<IbmDbModule, 'ibm_db default export satisfies IbmDbModule'>(
           await import(ibmDbModuleName).catch(() => {
             throw new InternalError(
-              'ibm_db native module not found. Install ibm_db to use the Db2 driver.',
+              'ibm_db native module not found. Install ibm_db to use the Db2 control driver.',
             );
           }),
         );
-        const conn = await new Promise<NativeIbmDbConnection>((resolve, reject) => {
-          ibmDbModule.open(connectionString, (err: unknown, connection: unknown) => {
-            if (err) {
-              reject(normalizeDb2Error(err));
-            } else {
-              resolve(
-                blindCast<NativeIbmDbConnection, 'ibm_db open returns NativeIbmDbConnection'>(
-                  connection,
-                ),
-              );
-            }
-          });
-        });
-        const client = new IbmDbClientWrapper(conn);
-        return new Db2ControlDriver(client, connectionString);
+        // Open a single direct connection for control operations (DDL, introspection).
+        // Control drivers do not use a pool — they open and close one connection per operation.
+        const pool = new ibmDbModule.Pool();
+        const db: IbmDbDatabase = await pool.open(connectionString);
+        return new Db2ControlDriver(db, connectionString);
       } catch (error) {
-        if (error instanceof Error && error.message.includes('ibm_db')) {
+        if (error instanceof InternalError) {
           throw errorRuntime('DRIVER.CONNECTION_FAILED', error.message, { cause: error });
         }
-        throw errorRuntime('DRIVER.CONNECTION_FAILED', 'Db2 connection failed', {
+        throw errorRuntime('DRIVER.CONNECTION_FAILED', 'Db2 control connection failed', {
           why: error instanceof Error ? error.message : String(error),
           fix: 'Verify the Db2 connection string and that ibm_db is installed',
           meta: { connectionString },
