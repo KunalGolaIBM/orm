@@ -7,7 +7,7 @@
   "sideEffects": false,
   "scripts": {
     "build": "tsdown",
-    "test": "vitest run",
+    "test": "node scripts/run-tests.mjs",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "lint": "biome check . --error-on-warnings",
     "lint:fix": "biome check --write .",
@@ -24,7 +24,8 @@
     "@internal/sql-relational-core": "workspace:8.0.0-rc.12",
     "@internal/utils": "workspace:8.0.0-rc.12",
     "@types/node": "catalog:",
-    "arktype": "^2.2.2"
+    "arktype": "^2.2.2",
+    "ibm_db": "^4.0.1"
   },
   "devDependencies": {
     "@repo/test-utils": "workspace:8.0.0-rc.12",
